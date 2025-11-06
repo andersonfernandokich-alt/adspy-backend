@@ -4,48 +4,61 @@ import cors from "cors";
 import dotenv from "dotenv";
 
 dotenv.config();
-
 const app = express();
 app.use(cors());
-
 const PORT = process.env.PORT || 4000;
-const ACCESS_TOKEN = process.env.ACCESS_TOKEN;
 
-app.get("/", (req, res) => {
-  res.json({ message: "Conexão com Facebook OK ✅", user: { name: "Anderson Kich" } });
+// ✅ Rota de teste pra ver se o token tá funcionando
+app.get("/", async (req, res) => {
+  try {
+    const response = await axios.get(
+      "https://graph.facebook.com/v19.0/me",
+      {
+        params: {
+          access_token: process.env.ACCESS_TOKEN,
+        },
+      }
+    );
+    res.json({
+      message: "Conexão com Facebook OK ✅",
+      user: response.data,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Erro ao conectar com o Facebook ❌",
+      error: error.response?.data || error.message,
+    });
+  }
 });
 
+// 🔍 Rota pra buscar anúncios
 app.get("/api/anuncios", async (req, res) => {
-  const q = req.query.q || "";
-
-  if (!ACCESS_TOKEN) {
-    return res.status(500).json({ error: "ACCESS_TOKEN não definido no .env" });
-  }
+  const { q, country = "BR" } = req.query;
 
   try {
-    const response = await axios.get("https://graph.facebook.com/v19.0/ads_archive", {
-      params: {
-        access_token: ACCESS_TOKEN,
-        ad_reached_countries: ["BR"],
-        search_terms: q,
-        fields:
-          "id,ad_creation_time,ad_creative_bodies,ad_snapshot_url,ad_creative_link_caption,ad_creative_link_description,page_name,page_id",
-      },
-    });
+    const response = await axios.get(
+      "https://graph.facebook.com/v19.0/ads_archive",
+      {
+        params: {
+          access_token: process.env.ACCESS_TOKEN,
+          search_terms: q,
+          ad_reached_countries: [country],
+          ad_type: "ALL", // alterado pra pegar todos os tipos
+          fields:
+            "ad_creation_time,ad_creative_body,ad_snapshot_url,page_name",
+        },
+      }
+    );
 
-    if (!response.data.data || response.data.data.length === 0) {
-      return res.status(404).json({ message: "Nenhum anúncio encontrado." });
-    }
-
-    res.json(response.data.data);
+    res.json(response.data);
   } catch (error) {
-    console.error("Erro ao buscar anúncios:", error.response?.data || error.message);
+    console.error("Erro:", error.response?.data || error.message);
     res.status(500).json({
-      error: error.response?.data?.error || { message: "Erro desconhecido ao buscar anúncios." },
+      error: error.response?.data || "Erro desconhecido ao buscar anúncios",
     });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`✅ Servidor rodando na porta ${PORT}`);
-});
+app.listen(PORT, () =>
+  console.log(`Servidor rodando na porta ${PORT}`)
+);
