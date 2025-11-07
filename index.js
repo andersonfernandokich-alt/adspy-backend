@@ -8,11 +8,11 @@ const app = express();
 app.use(cors());
 const PORT = process.env.PORT || 4000;
 
-// ✅ Rota de teste pra ver se o token tá funcionando
+// ✅ Rota de teste pra ver se o token do APP tá funcionando
 app.get("/", async (req, res) => {
   try {
     const response = await axios.get(
-      "https://graph.facebook.com/v19.0/me",
+      "https://graph.facebook.com/v19.0/app",
       {
         params: {
           access_token: process.env.ACCESS_TOKEN,
@@ -20,8 +20,8 @@ app.get("/", async (req, res) => {
       }
     );
     res.json({
-      message: "Conexão com Facebook OK ✅",
-      user: response.data,
+      message: "Conexão com Facebook OK ✅ (Token de Aplicativo)",
+      app: response.data,
     });
   } catch (error) {
     res.status(500).json({
@@ -43,7 +43,7 @@ app.get("/api/anuncios", async (req, res) => {
           access_token: process.env.ACCESS_TOKEN,
           search_terms: q,
           ad_reached_countries: [country],
-          ad_type: "ALL", // alterado pra pegar todos os tipos
+          ad_type: "ALL",
           fields:
             "ad_creation_time,ad_creative_body,ad_snapshot_url,page_name",
         },
